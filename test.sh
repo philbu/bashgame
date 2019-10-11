@@ -1,10 +1,15 @@
 #!/bin/bash
 
-width=$((RANDOM % 50))
-height=$((RANDOM % $width))
+width=10
+height=10
 
-xpos=3
-ypos=5
+end=$((($width * $height) - 1))
+
+echo "$width $height $end"
+declare -a array
+
+xpos=$((RANDOM % $width))
+ypos=$((RANDOM % $height))
 cache_xpos=$xpos
 cache_ypos=$ypos
 
@@ -16,7 +21,24 @@ cache_e_ypos=$e_ypos
 g_xpos=$((RANDOM % $width))
 g_ypos=$((RANDOM % $height))
 
-g_height=$(($height-1))
+# PLAYER = 1
+# ENEMY = 2
+# GOAL = 3
+
+for (( i=0; i<=$end; i++ ))
+do
+    if [ $(($ypos * $height + $xpos )) -eq $i ]; then
+        array[$i]="1"
+    elif [ $(($e_ypos * $height + $e_xpos )) -eq $i ]; then
+        array[$i]="2"
+    elif [ $(($g_ypos * $height + $g_xpos )) -eq $i ]; then
+        array[$i]="3"
+    else
+        array[$i]="0"
+    fi
+done
+
+#g_height=$(($height-1))
 
 
 w_xpos=(1 3 6)
@@ -46,6 +68,10 @@ follow() {
 	fi
 }
 
+follow_a_star() {
+    
+}
+
 go_up() {
 	#clear
 	follow
@@ -62,7 +88,7 @@ go_up() {
 	fi
 	if [ $state -eq 0 ]; then
 		clear
-		echo "LOST"
+		echo "✝ LOST ✝"
 		exit 0
 	fi
 	wait_input
@@ -70,30 +96,30 @@ go_up() {
 
 wait_input() {
 	tput cup $height 0
-	read -n 1 move
+	read -s -n 1 move
 	let steps_done=$steps_done+1
 	#echo "$move"
 	case "$move" in
 		'w') 
-			echo "UP"
+			#echo "UP"
 			if [ $ypos -gt 0 ]; then
 				let ypos=$ypos-1
 			fi
 			;;
 		'a') 
-			echo "LEFT"
+			#echo "LEFT"
 			if [ $(($xpos-1)) -gt 0 ]; then
 				let xpos=$xpos-1
 			fi
 			;;
 		's') 
-			echo "DOWN"
+			#echo "DOWN"
 			if [ $(($ypos+1)) -lt $height ]; then
 				let ypos=$ypos+1
 			fi
 			;;
 		'd') 
-			echo "RIGHT"
+			#echo "RIGHT"
 			if [ $xpos -lt $width ]; then
 				let xpos=$xpos+1
 			fi
@@ -110,7 +136,7 @@ print_over() {
 	tput cup $ypos $(($xpos-1))
 	cache_xpos=$xpos
 	cache_ypos=$ypos
-	echo -n "I"
+	echo -n "♥"
 
 	# enemy 
 	tput cup $cache_e_ypos $cache_e_xpos
@@ -118,7 +144,7 @@ print_over() {
 	tput cup $e_ypos $e_xpos
 	cache_e_xpos=$e_xpos
 	cache_e_ypos=$e_ypos
-	echo -n "X"
+	echo -n "☼"
 	
 	go_up
 }
@@ -130,13 +156,13 @@ print_all () {
 		while [ $x -lt $width ]; do
 			let x=$x+1
 			if [ $ypos -eq $y ] && [ $xpos -eq $x ]; then
-				echo -n "I"
+				echo -n "♥"
 			elif [ $x -eq $e_xpos ] && [ $y -eq $e_ypos ]; then
-				echo -n "X"
+				echo -n "☼"
 			elif [ $x -eq $g_xpos ] && [ $y -eq $g_ypos ]; then
-				echo -n "S"
-			elif [ $y -eq $g_height ]; then
-				echo -n "-"
+				echo -n "⌂"
+			#elif [ $y -eq $g_height ]; then
+				#echo -n "-"
 			else
 				echo -n " "
 			fi
