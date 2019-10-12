@@ -11,6 +11,9 @@ MAGENTA="\e[95m"
 CYAN="\e[96m"
 NC="\e[39m\e[49m"
 
+width=81
+height=45
+
 terminate() {
     #echo "$1"
     if [ -z ${SOUND+x} ]; then
@@ -18,7 +21,41 @@ terminate() {
     else 
         kill $SOUND
     fi
+    stty echo
     exit 0
+}
+
+print_win() {
+    clear
+    echo -e "$GREEN
+
+██╗   ██╗ ██████╗ ██╗   ██╗    ██╗    ██╗ ██████╗ ███╗   ██╗
+╚██╗ ██╔╝██╔═══██╗██║   ██║    ██║    ██║██╔═══██╗████╗  ██║
+ ╚████╔╝ ██║   ██║██║   ██║    ██║ █╗ ██║██║   ██║██╔██╗ ██║
+  ╚██╔╝  ██║   ██║██║   ██║    ██║███╗██║██║   ██║██║╚██╗██║
+   ██║   ╚██████╔╝╚██████╔╝    ╚███╔███╔╝╚██████╔╝██║ ╚████║
+   ╚═╝    ╚═════╝  ╚═════╝      ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═══╝
+                                                            $NC"
+    echo -e "$YELLOW*******************************************************************************
+          |                   |                  |                     |
+ _________|________________.=\"\"_;=.______________|_____________________|_______
+|                   |  ,-\"_,=\"\"     \`\"=.|                  |
+|___________________|__\"=._o\`\"-._        \`\"=.______________|___________________
+          |                \`\"=._o\`\"=._      _\`\"=._                     |
+ _________|_____________________:=._o \"=._.\"_.-=\"'\"=.__________________|_______
+|                   |    __.--\" , ; \`\"=._o.\" ,-\"\"\"-._ \".   |
+|___________________|_._\"  ,. .\` \` \`\` ,  \`\"-._\"-._   \". '__|___________________
+          |           |o\`\"=._\` , \"\` \`; .\". ,  \"-._\"-._; ;              |
+ _________|___________| ;\`-.o\`\"=._; .\" \` '\`.\"\\\` . \"-._ /_______________|_______
+|                   | |o;    \`\"-.o\`\"=._\`\`  '\` \" ,__.--o;   |
+|___________________|_| ;     (#) \`-.o \`\"=.\`_.--\"_o.-; ;___|___________________
+____/______/______/___|o;._    \"      \`\".o|o_.--\"    ;o;____/______/______/____
+/______/______/______/_\"=._o--._        ; | ;        ; ;/______/______/______/_
+____/______/______/______/__\"=._o--._   ;o|o;     _._;o;____/______/______/____
+/______/______/______/______/____\"=._o._; | ;_.--\"o.--\"_/______/______/______/_
+____/______/______/______/______/_____\"=.o|o_.--\"\"___/______/______/______/____
+/______/______/______/______/______/______/______/______/______/______/[TomekK]
+*******************************************************************************$NC"
 }
 
 print_lost() {
@@ -36,7 +73,7 @@ print_lost() {
     play -q dead.ogg
 }
 
-print_intro() {
+print_logo() {
     echo -e "$YELLOW   ▄████████              ▄▄▄▄███▄▄▄▄      ▄████████  ▄███████▄     ▄████████           ▄█  ███▄▄▄▄      ▄██████▄  
   ███    ███            ▄██▀▀▀███▀▀▀██▄   ███    ███ ██▀     ▄██   ███    ███          ███  ███▀▀▀██▄   ███    ███ 
   ███    ███            ███   ███   ███   ███    ███       ▄███▀   ███    █▀           ███▌ ███   ███   ███    █▀  
@@ -57,7 +94,10 @@ print_intro() {
                                                                                                 
 
 $NC"
+}
 
+print_intro() {
+    print_logo
     echo -e "\tNavigate with$GREEN w, a, s, d$NC. Exit with$GREEN q$NC."
     echo ""
     echo -e "\t ${BLINK}1$UNBLINK ) Start Game"
@@ -70,6 +110,36 @@ $NC"
     select_intro
 }
 
+select_difficulty() {
+    clear
+    print_logo
+    echo -e "\tSelect the difficulty of the game:"
+    echo ""
+    echo -e "\t ${BLINK}1$UNBLINK ) Easy"
+    echo -e "\t ${BLINK}2$UNBLINK ) Medium"
+    echo -e "\t ${BLINK}3$UNBLINK ) Hard"
+    
+    read -s -n 1 move
+	case "$move" in
+		'1')
+            width=11
+            height=11
+			start_game
+			;;
+		'2')
+            width=41
+            height=41
+			start_game
+			;;
+		'3')
+            width=81
+            height=45
+			start_game
+			;;
+	esac
+	terminate
+}
+
 select_intro() {
     read -s -n 1 move
 	case "$move" in
@@ -80,30 +150,16 @@ select_intro() {
             #    kill $SOUND
             #fi
 			#Start Game
-			start_game
+			select_difficulty
 			;;
 		'2') 
 			#QUIT
 			clear
 			terminate
 			;;
-		'q') terminate;;
 	esac
-	print_over
+	terminate
 }
-
-width=81
-height=45
-
-end=$((($width * $height) - 1))
-
-#echo "$width $height $end"
-declare -a array
-
-e_xpos=$((RANDOM % $width))
-e_ypos=$((RANDOM % $height))
-cache_e_xpos=$e_xpos
-cache_e_ypos=$e_ypos
 
 init_maze() {
     for ((y=0; y<$height; y++)) ; do
@@ -148,27 +204,6 @@ carve_maze() {
    done
 }
 
-init_maze
-carve_maze $((2 * $width + 2))
-
-xpos=2
-ypos=1
-cache_xpos=$xpos
-cache_ypos=$ypos
-
-g_xpos=$(($width - 3))
-g_ypos=$(($height -2))
-
-array[$(($ypos * $width + $xpos))]="$RED♥$NC"
-array[$(($e_ypos * $width + $e_xpos))]="$BLINK$GREEN☼$NC$UNBLINK"
-array[$(($g_ypos * $width + $g_xpos))]="$YELLOW⌂$NC"
-
-state=1
-
-steps_done=0
-
-clear
-
 follow() {
 	if [ $(($steps_done%2)) -eq 0 ]; then
 		# move enemy
@@ -202,7 +237,8 @@ go_up() {
 		state=2
 	fi
 	if [ $state -eq 2 ]; then
-		terminate "WON with $steps_done steps"
+        print_win
+		terminate #"WON with $steps_done steps"
 	fi
 	if [ $state -eq 0 ]; then
 		print_lost
@@ -236,6 +272,7 @@ wait_input() {
 		's') 
 			#"DOWN"
 			new_pos=$(($pos+$width))
+			end=$((($width * $height) - 1))
 			if [ $new_pos -lt $(($end-1)) ] && [ "${array[$new_pos]}" != "█" ]; then
 				let ypos=$ypos+1
 				let steps_done=$steps_done+1
@@ -277,8 +314,37 @@ print_over() {
 	go_up
 }
 
+init_game() {
+    # random enemy needs fix
+    e_xpos=$((RANDOM % $width))
+    e_ypos=$((RANDOM % $height))
+    cache_e_xpos=$e_xpos
+    cache_e_ypos=$e_ypos
+    
+    init_maze
+    carve_maze $((2 * $width + 2))
+
+    xpos=2
+    ypos=1
+    cache_xpos=$xpos
+    cache_ypos=$ypos
+
+    g_xpos=$(($width - 3))
+    g_ypos=$(($height -2))
+
+    array[$(($ypos * $width + $xpos))]="$RED♥$NC"
+    array[$(($e_ypos * $width + $e_xpos))]="$BLINK$GREEN☼$NC$UNBLINK"
+    array[$(($g_ypos * $width + $g_xpos))]="$YELLOW⌂$NC"
+
+    state=1
+
+    steps_done=0
+}
+
 start_game () {
+    init_game
     clear
+    stty -echo
     for (( y=0; y<$height; y++ ))
     do
         for (( x=0; x<$width; x++ ))
@@ -295,5 +361,7 @@ start_game () {
 	#print_over
 }
 
+declare -a array
+clear
 print_intro
-exit 0
+terminate
