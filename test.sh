@@ -203,19 +203,15 @@ carve_maze() {
          if [ "${array[$nindex]}" = "█" ] ; then
             array[$index2]=" "
             math[$index2]=0
-            # spawn enemy random
-            spawning_enemy=$(($RANDOM % 20))
-            if [ $number_of_enemies -gt 0 ] && [ $spawning_enemy -eq 0 ]; then
+            # spawn enemy at random
+            local enemy_spawn_probability=$(($RANDOM % 20))
+            if [ $number_of_enemies -gt 0 ] && [ $enemy_spawn_probability -eq 0 ]; then
                 array[$index2]="$BLINK$GREEN☼$NC$UNBLINK"
                 
-                enemies_pos[$enemy_counter]=$index2
-                
-                enemy_counter=$(($enemy_counter + 1))
-                #e_xpos=$(($index2 % $width))
-                #e_ypos=$((($index2-$e_xpos) / $width))
-                #cache_e_xpos=$e_xpos
-                #cache_e_ypos=$e_ypos
-                
+                enemy_pos[$enemy_pos_size]=$index2
+                # increase (size) index of enemy_pos array
+                enemy_pos_size=$(($enemy_pos_size + 1))
+                # decrease number of enemies after enemy added to avoid too many enemies
                 number_of_enemies=$(($number_of_enemies - 1))
             fi
             carve_maze $nindex
@@ -232,10 +228,10 @@ carve_maze() {
 follow() {
 	if [ $(($steps_done%2)) -eq 0 ]; then
         # move enemies
-        for (( c=0; c<$enemy_counter; c++ ))
+        for (( c=0; c<$enemy_pos_size; c++ ))
         do
             # move enemy
-            pos=${enemies_pos[$c]}
+            pos=${enemy_pos[$c]}
             #"UP"
             new_pos=$(($pos-$width))
             up=0
@@ -264,32 +260,30 @@ follow() {
             if [ $(($new_pos % $width)) -lt $(($width-1)) ]; then
                 right=${math[$new_pos]}
             fi
-            
-            #echo "$up $left $right $down"
 
             #up
             if [ $up -gt $left ] && [ $up -gt $down ] && [ $up -gt $right ]; then
                 new_pos=$(($pos-$width))
                 change_pos $pos $new_pos
-                enemies_pos[$c]=$new_pos
+                enemy_pos[$c]=$new_pos
             fi
             #left
             if [ $left -gt $up ] && [ $left -gt $down ] && [ $left -gt $right ]; then
                 new_pos=$(($pos-1))
                 change_pos $pos $new_pos
-                enemies_pos[$c]=$new_pos
+                enemy_pos[$c]=$new_pos
             fi
             #right
             if [ $right -gt $left ] && [ $right -gt $down ] && [ $right -gt $up ]; then
                 new_pos=$(($pos+1))
                 change_pos $pos $new_pos
-                enemies_pos[$c]=$new_pos
+                enemy_pos[$c]=$new_pos
             fi
             #down
             if [ $down -gt $left ] && [ $down -gt $up ] && [ $down -gt $right ]; then
                 new_pos=$(($pos+$width))
                 change_pos $pos $new_pos
-                enemies_pos[$c]=$new_pos
+                enemy_pos[$c]=$new_pos
             fi
         done
 	fi
@@ -303,9 +297,9 @@ go_up() {
 	#clear
 	follow
 	#tput cup 0 0
-	for (( c=0; c<$enemy_counter; c++ ))
+	for (( c=0; c<$enemy_pos_size; c++ ))
     do
-        if [ "$player_pos" = "${enemies_pos[$c]}" ]; then
+        if [ "$player_pos" = "${enemy_pos[$c]}" ]; then
             state=0
         fi
     done
@@ -326,8 +320,6 @@ go_up() {
 wait_input() {
 	tput cup $height 0
 	read -s -n 1 move
-	#echo "$move"
-	#pos=$(($ypos*$width+$xpos))
 	case "$move" in
 		'w') 
 			#"UP"
@@ -371,7 +363,6 @@ wait_input() {
             terminate
             ;;
 	esac
-	#print_over
 	go_up
 }
 
@@ -401,32 +392,7 @@ change_player() {
 	echo -ne "$RED♥$NC"
 }
 
-print_over() {
-	# player
-	tput cup $cache_ypos $cache_xpos
-	echo -n " "
-	tput cup $ypos $xpos
-	cache_xpos=$xpos
-	cache_ypos=$ypos
-	echo -ne "$RED♥$NC"
-
-	# enemy 
-	#tput cup $cache_e_ypos $cache_e_xpos
-	#echo -n " "
-	#tput cup $e_ypos $e_xpos
-	#cache_e_xpos=$e_xpos
-	#cache_e_ypos=$e_ypos
-	#echo -ne "$BLINK$GREEN☼$NC$UNBLINK"
-	
-	go_up
-}
-
-following_pattern() {
-    math[$player_pos]=10000
-    recursive_follow 10000 $player_pos
-}
-
-recursive_follow() {
+follow_map() {
     local pos=$2
     local counter=$1
     math[$pos]=$counter
@@ -479,14 +445,14 @@ recursive_follow() {
 }
 
 init_game() {
-    enemy_counter=0
+    enemy_pos_size=0
     
     init_maze
     carve_maze $((2 * $width + 2))
     
     player_pos=$(($width+2))
     
-    following_pattern
+    follow_map 10000 $player_pos
     
     goal_pos=$((($height-2) * $width + ($width - 3)))
 
@@ -512,22 +478,10 @@ start_game () {
         done
         echo ""
     done
-#    for (( y=0; y<$height; y++ ))
-#    do
-#        for (( x=0; x<$width; x++ ))
-#        do
-#            dim=$(($y * $width + $x))
-#            echo -ne "${math[$dim]}\t"
-#        done
-#        echo ""
-#    done
-    #play -q loop.ogg repeat &
-    SOUND=$!
 	wait_input
-	#print_over
 }
 
-declare -a enemies_pos
+declare -a enemy_pos
 declare -a array
 declare -a math
 clear
